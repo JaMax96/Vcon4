@@ -1,8 +1,9 @@
+import numpy as np
 
 class EasyAI():
 
-    def getTurn(gamestate):
-        pass
+    def getTurn(self,gamestate):
+        return np.random.randint(7,size=1)
 
 
 class MediumAI():

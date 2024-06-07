@@ -1,4 +1,4 @@
-from gamestate import Gamestate
+from game.gamestate import Gamestate
 from controllers.cli_controller import CLIController
 from utils import MenuItem
 

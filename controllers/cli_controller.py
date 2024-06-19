@@ -13,9 +13,12 @@ class CLIController(AbstractController):
             print(f"{x} is not a valid menu item, please enter one of these")
             print(list(MenuItem))        
     
-    def getMove(self):
+    def getMove(self,gameboard):
         while True:
             x = input()
             if re.search("[1-7]",x):
                 return int(x)-1
             print(f"{x} is not a valid move please enter a column from 1-7 (left to right)")
+    
+    def getWinningWindow(self,player):
+        print(f"Winner is Player {player}")

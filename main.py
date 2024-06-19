@@ -1,9 +1,10 @@
 from game.gamestate import Gamestate
 from controllers.cli_controller import CLIController
+from controllers.gui_controller import GuiController
 from utils import MenuItem
 from game.aiOpponent import EasyAI
 
-controller = CLIController()
+controller = GuiController()
 game = Gamestate() 
 
 def runOnePlayerMode():  
@@ -15,12 +16,13 @@ def runOnePlayerMode():
     while True:
         print(f"Player {game.getPlayer()}, please do your turn")
         
-        move = controller.getMove()
+        move = controller.getMove(game)
         game.put(move)
         game.printBoard()
 
         if game.checkWon():
-            print(f"Player {game.getPlayer()} has won: Wohoohoohoho")            
+            print(f"Player {game.getPlayer()} has won: Wohoohoohoho")
+            controller.getWinningWindow(1)           
             game.clearBoard()
             break
 
@@ -30,7 +32,8 @@ def runOnePlayerMode():
         game.printBoard()
 
         if game.checkWon():
-            print(f"AI has won: Oh No")            
+            print(f"AI has won: Oh No")
+            controller.getWinningWindow(2)          
             game.clearBoard()
             break
 
@@ -42,7 +45,7 @@ def runTwoPlayerMode():
     while run:
         print(f"Player {game.getPlayer()}, please do your turn")
         
-        move = controller.getMove()
+        move = controller.getMove(game)
         game.put(move)
 
         game.printBoard()
@@ -50,6 +53,7 @@ def runTwoPlayerMode():
 
         if game.checkWon():
             print(f"Player {game.getPlayer()} has won: Wohoohoohoho")
+            controller.getWinningWindow(game.getPlayer())    
             run = False
             game.clearBoard()
         
@@ -60,7 +64,10 @@ def runGame():
 
     menuItem = None
     while run:
+        print("Menu Item Selection")
         menuItem = controller.getMenuItem()
+
+        print(menuItem)
 
         match menuItem:      
                 

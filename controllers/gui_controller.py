@@ -7,6 +7,17 @@ from mediapipe.tasks.python import vision
 import cv2 as cv
 from collections import deque, Counter
 import time
+from game.aiOpponent import EasyAI, MediumAI, HardAI
+
+
+def get_difficulty_item(y):
+    if 1/7 < y < 2/7:
+        return 0
+    if 3/7 < y < 4/7:
+        return 1
+    if 5/7 < y < 6/7:
+        return 2
+    return MenuItem.Default
 
 
 def get_menu_item(y):
@@ -51,6 +62,34 @@ def check_for_column(list):
 
         return most_common[0][0]
     return -1
+
+
+def draw_difficulty_item(frame, frame_width, frame_height):
+    fraction = 1/7
+
+    # easy difficulty
+    lp = (int(0.5*frame_width), int(2*fraction*frame_height))
+    rp = (int(6*fraction*frame_width), int(1*fraction*frame_height))
+    cv.rectangle(frame, lp, rp, (0, 255, 255), 3)
+    lp = (lp[0]+5, lp[1]-17)
+    cv.putText(frame, "Easy", lp,
+               cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv.LINE_4)
+
+    # medium difficulty
+    lp = (int(0.5*frame_width), int(4*fraction*frame_height))
+    rp = (int(6*fraction*frame_width), int(3*fraction*frame_height))
+    cv.rectangle(frame, lp, rp, (0, 255, 255), 3)
+    lp = (lp[0]+5, lp[1]-17)
+    cv.putText(frame, "Medium", lp,
+               cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv.LINE_4)
+
+    # hard difficulty
+    lp = (int(0.5*frame_width), int(6*fraction*frame_height))
+    rp = (int(6*fraction*frame_width), int(5*fraction*frame_height))
+    cv.rectangle(frame, lp, rp, (0, 255, 255), 3)
+    lp = (lp[0]+5, lp[1]-17)
+    cv.putText(frame, "Hard", lp,
+               cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv.LINE_4)
 
 
 def draw_menu(frame, frame_width, frame_height):
@@ -172,7 +211,7 @@ class GuiController(AbstractController):
 
         self.options = GestureRecognizerOptions(
             base_options=BaseOptions(model_asset_path=model_path),
-            running_mode=VisionRunningMode.IMAGE)
+            running_mode=VisionRunningMode.IMAGE)        
 
     def getMenuItem(self):
         self.list_of_detected_menu_items.clear()
@@ -226,6 +265,7 @@ class GuiController(AbstractController):
                 if menu_item != MenuItem.Default:
                     break
 
+            time.sleep(1)
             cap.release()
             cv.destroyAllWindows()
             return menu_item.name
@@ -281,25 +321,101 @@ class GuiController(AbstractController):
                     break
             time.sleep(1)
             cap.release()
-            cv.destroyAllWindows()          
+            cv.destroyAllWindows()
             return column
 
     def getWinningWindow(self, winner):
-        cap = cv.VideoCapture(0)
-        while True:
-            ret, frame = cap.read()
 
-            frame_width = cap.get(cv.CAP_PROP_FRAME_WIDTH)
-            frame_height = cap.get(cv.CAP_PROP_FRAME_HEIGHT)
+        gesture = None
+        
+        with self.GestureRecognizer.create_from_options(self.options) as recognizer:
+            while gesture != "Victory":
+                cap = cv.VideoCapture(0)
+                ret, frame = cap.read()
 
-            #cv.putText(frame, f"Player {winner} has Won", (frame_width/2, frame_height/2),
-            #          cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv.LINE_4)
-            cv.putText(frame, "WOLOLO", (0, len(
-                        frame[0])-175), cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv.LINE_4)
-            
-            cv.imshow('frame', frame)
-            if cv.waitKey(1) == ord('q'):
-                    break            
-            
+                frame_width = cap.get(cv.CAP_PROP_FRAME_WIDTH)
+                frame_height = cap.get(cv.CAP_PROP_FRAME_HEIGHT)
+
+                x = int(frame_height/2)
+                y = int(frame_width/3)
+
+                mp_image = mp.Image(
+                    image_format=mp.ImageFormat.SRGB, data=frame)
+                result = recognizer.recognize(mp_image)
+
+                if result.gestures:
+                    gesture = result.gestures[0][0].category_name
+                else:
+                    gesture = "None Detected"
+
+                cv.putText(frame, f"Player {winner} has Won", (y, x),
+                         cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv.LINE_4)
+                cv.putText(frame, gesture, (0, len(
+                    frame[0])-175), cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv.LINE_4)
+
+                cv.imshow('frame', frame)
+                if cv.waitKey(1) == ord('q'):
+                    break
+
+                if gesture == "Victory":
+                    break
+
         cap.release()
         cv.destroyAllWindows()
+
+    def getDifficulty(self):
+        self.list_of_detected_menu_items.clear()
+
+        with self.GestureRecognizer.create_from_options(self.options) as recognizer:
+            cap = cv.VideoCapture(0)
+
+            menu_item = MenuItem.Default
+            while menu_item == MenuItem.Default:
+                # Capture frame-by-frame
+                ret, frame = cap.read()
+
+                # if frame is read correctly ret is Trueq
+                if not ret:
+                    print("Can't receive frame (stream end?). Exiting ...")
+                    break
+                # Our operations on the frame come here
+                mp_image = mp.Image(
+                    image_format=mp.ImageFormat.SRGB, data=frame)
+                result = recognizer.recognize(mp_image)
+                if result.gestures:
+                    gesture = result.gestures[0][0].category_name
+
+                    landmark = result.hand_landmarks[0][8]
+
+                    gesture = gesture + \
+                        (f"X:{round(landmark.x,2)}, Y: {round(landmark.y,2)}, Z: {round(landmark.z,2)}")
+                    self.list_of_detected_menu_items.appendleft(
+                        get_difficulty_item(landmark.y))
+
+                else:
+                    gesture = "None Detected"
+                    self.list_of_detected_menu_items.appendleft(
+                        MenuItem.Default)
+
+                # drawing menu
+                frame_width = cap.get(cv.CAP_PROP_FRAME_WIDTH)
+                frame_height = cap.get(cv.CAP_PROP_FRAME_HEIGHT)
+
+                draw_difficulty_item(frame, frame_width, frame_height)
+
+                cv.putText(frame, gesture, (0, len(
+                    frame[0])-175), cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv.LINE_4)
+                # Display the resulting frame
+                cv.imshow('frame', frame)
+                if cv.waitKey(1) == ord('q'):
+                    break
+                menu_item = check_for_selection(
+                    self.list_of_detected_menu_items)
+
+            cap.release()
+            cv.destroyAllWindows()
+            if menu_item == 0:
+                return EasyAI()
+            if menu_item == 1:
+                return MediumAI()
+            return HardAI()

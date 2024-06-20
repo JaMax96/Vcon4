@@ -2,15 +2,16 @@ from game.gamestate import Gamestate
 from controllers.cli_controller import CLIController
 from controllers.gui_controller import GuiController
 from utils import MenuItem
-from game.aiOpponent import EasyAI,MediumAI,HardAI
 
-controller = CLIController()
+
+controller = GuiController()
 game = Gamestate() 
 
 def runOnePlayerMode():  
 
-    print("Please Choose a difficulty")    
-    opponent = HardAI()
+    print("Please Choose a difficulty")
+    opponent = controller.getDifficulty()
+    print(f"Difficulty: {opponent}")
 
     print("Game Starting") 
     while True:

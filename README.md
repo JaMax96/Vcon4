@@ -8,3 +8,4 @@ For running, simply execute the main.py file. The game is controllable with all 
 After winning, a winning screen is displayed which you can close by making the victory gesture (a "V" with the index and middle finger).
 
 We could not figure out, why the victory screen is so laggy though :(
+test
